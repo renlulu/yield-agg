@@ -347,6 +347,7 @@ async function fetchBinanceAnnouncementCampaigns(
         return false
       }
 
+      if (productAssets.size === 0) return true
       return [...productAssets].some((asset) => title.includes(asset))
     })
     .slice(0, 40)
@@ -431,68 +432,77 @@ function normalizeRows(rows: BinanceFlexibleProduct[]): EarnCampaign[] {
 export async function fetchBinanceCampaigns(
   credentials: PrivateApiCredentials | null,
 ): Promise<ExchangeResult> {
-  if (!credentials) {
+  let baseCampaigns: EarnCampaign[] = []
+  let announcementCampaigns: EarnCampaign[] = []
+  const parts: string[] = []
+
+  if (credentials) {
+    try {
+      const timestamp = Date.now()
+      const params = new URLSearchParams({
+        current: '1',
+        size: '100',
+        timestamp: String(timestamp),
+      })
+      const signature = hmacHex(credentials.apiSecret, params.toString())
+      params.set('signature', signature)
+
+      const response = await fetch(
+        `${BASE_URL}/sapi/v1/simple-earn/flexible/list?${params.toString()}`,
+        {
+          headers: {
+            'X-MBX-APIKEY': credentials.apiKey,
+            Accept: 'application/json',
+          },
+        },
+      )
+
+      if (response.ok) {
+        const payload = (await response.json()) as BinanceResponse
+        baseCampaigns = normalizeRows(payload.rows ?? [])
+        parts.push('Simple Earn 私有接口')
+      } else {
+        console.error(`[binance] Simple Earn API HTTP ${response.status}`)
+      }
+    } catch (error) {
+      console.error('[binance] Simple Earn API error:', error instanceof Error ? error.message : error)
+    }
+  }
+
+  try {
+    announcementCampaigns = await fetchBinanceAnnouncementCampaigns([])
+    if (announcementCampaigns.length) {
+      parts.push('公告站活动接口')
+    }
+  } catch (error) {
+    console.error('[binance] Announcement error:', error instanceof Error ? error.message : error)
+  }
+
+  const campaigns = [...announcementCampaigns, ...baseCampaigns]
+
+  if (campaigns.length === 0) {
     return {
       source: {
         id: 'binance',
         label: 'Binance',
-        state: 'needs_credentials',
-        auth: 'private',
-        message: '官方 Simple Earn 接口需要 API Key 和签名。',
+        state: credentials ? 'error' : 'needs_credentials',
+        auth: credentials ? 'private' : 'public',
+        message: credentials
+          ? 'Simple Earn 接口和公告接口均不可用。'
+          : '官方 Simple Earn 接口需要 API Key 和签名。',
         itemCount: 0,
       },
       campaigns: [],
     }
   }
 
-  const timestamp = Date.now()
-  const params = new URLSearchParams({
-    current: '1',
-    size: '100',
-    timestamp: String(timestamp),
-  })
-  const signature = hmacHex(credentials.apiSecret, params.toString())
-  params.set('signature', signature)
-
-  const response = await fetch(
-    `${BASE_URL}/sapi/v1/simple-earn/flexible/list?${params.toString()}`,
-    {
-      headers: {
-        'X-MBX-APIKEY': credentials.apiKey,
-        Accept: 'application/json',
-      },
-    },
-  )
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
-  }
-
-  const payload = (await response.json()) as BinanceResponse
-  const rows = payload.rows ?? []
-  const baseCampaigns = normalizeRows(rows)
-  let announcementCampaigns: EarnCampaign[] = []
-  let sourceMessage = '官方 Simple Earn 私有接口。'
-
-  try {
-    announcementCampaigns = await fetchBinanceAnnouncementCampaigns(rows)
-    if (announcementCampaigns.length) {
-      sourceMessage = '官方 Simple Earn 私有接口 + Binance 公告站官方活动接口。'
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'announcement unavailable'
-    sourceMessage = `官方 Simple Earn 私有接口；公告活动层暂不可用（${message}）。`
-  }
-
-  const campaigns = [...announcementCampaigns, ...baseCampaigns]
-
   return {
     source: {
       id: 'binance',
       label: 'Binance',
       state: 'live',
-      auth: 'private',
-      message: sourceMessage,
+      auth: credentials ? 'private' : 'public',
+      message: parts.join(' + ') + '。',
       itemCount: campaigns.length,
     },
     campaigns,

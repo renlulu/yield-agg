@@ -12,6 +12,7 @@ function asErrorResult(
   error: unknown,
 ): ExchangeResult {
   const message = error instanceof Error ? error.message : 'Unknown error'
+  console.error(`[feed] ${fallback.source.id} error:`, message)
 
   return {
     source: {
