@@ -50,7 +50,7 @@ app.get('/api/earn', async (request, response) => {
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(distPath))
-  app.get('*', (_request, response) => {
+  app.get('/{*splat}', (_request, response) => {
     response.sendFile(path.join(distPath, 'index.html'))
   })
 }
