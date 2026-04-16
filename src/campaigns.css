@@ -423,6 +423,14 @@
   }
 }
 
+.cp-row-expired {
+  opacity: 0.5;
+}
+
+.cp-days-left.expiry-expired {
+  color: var(--muted);
+}
+
 .cp-error,
 .cp-empty {
   padding: 40px 20px;

@@ -91,7 +91,7 @@ function isCampaignType(campaign: EarnCampaign) {
     return true
   }
 
-  if (campaign.product_type === 'earn_campaign') {
+  if (campaign.product_type === 'earn_campaign' || campaign.product_type === 'flash_deals') {
     return true
   }
 
@@ -100,6 +100,18 @@ function isCampaignType(campaign: EarnCampaign) {
   }
 
   if (campaign.reward_type === 'airdrop') {
+    return true
+  }
+
+  if (campaign.is_new_user_only) {
+    return true
+  }
+
+  if (campaign.notes && /bonus|奖励|限时|活动/i.test(campaign.notes)) {
+    return true
+  }
+
+  if (campaign.trending) {
     return true
   }
 
@@ -241,13 +253,9 @@ function CampaignsPage() {
   }, [])
 
   const activeCampaigns = all.filter((campaign) => {
-    if (!campaign.is_active) {
-      return false
-    }
-
     const daysLeft = getDaysLeft(campaign.end_date)
 
-    if (daysLeft != null && daysLeft < 0) {
+    if (daysLeft != null && daysLeft < -7) {
       return false
     }
 
@@ -321,7 +329,7 @@ function CampaignsPage() {
         <div className="cp-header-copy">
           <h1>发现限时高息机会</h1>
           <p className="cp-subtitle">
-            只看有截止日期的活动，按年化排序，到期前不错过。
+            限时活动、新用户 Bonus、空投奖励，按年化排序。
           </p>
         </div>
 
@@ -449,9 +457,10 @@ function CampaignsPage() {
         <div className="cp-list">
           {sorted.map((campaign) => {
             const daysLeft = getDaysLeft(campaign.end_date)
+            const isExpired = daysLeft != null && daysLeft < 0
             const progress = timelineProgress(campaign)
             const earnings = projectedEarnings(campaign)
-            const tone = expiryTone(daysLeft)
+            const tone = isExpired ? 'expiry-expired' : expiryTone(daysLeft)
             const color = protocolColors[campaign.protocol_uid] ?? '#3456dc'
             const tags: string[] = []
 
@@ -489,7 +498,7 @@ function CampaignsPage() {
 
             return (
               <article
-                className="cp-row"
+                className={`cp-row${isExpired ? ' cp-row-expired' : ''}`}
                 key={campaign.id}
                 style={
                   {
@@ -543,7 +552,12 @@ function CampaignsPage() {
                 </div>
 
                 <div className="cp-cell cp-cell-expiry">
-                  {daysLeft != null ? (
+                  {isExpired ? (
+                    <>
+                      <strong className="cp-days-left expiry-expired">已结束</strong>
+                      <p className="cp-end-date">{formatDate(campaign.end_date)}</p>
+                    </>
+                  ) : daysLeft != null ? (
                     <>
                       <strong className={`cp-days-left ${tone}`}>
                         还剩 {daysLeft} 天
@@ -557,6 +571,11 @@ function CampaignsPage() {
                           />
                         </div>
                       ) : null}
+                    </>
+                  ) : campaign.is_new_user_only ? (
+                    <>
+                      <strong className="cp-days-left expiry-normal">新用户专享</strong>
+                      <p className="cp-end-date">注册后限时可用</p>
                     </>
                   ) : (
                     <>
