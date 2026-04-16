@@ -129,11 +129,17 @@
 }
 
 .cp-select,
-.cp-search {
+.cp-search,
+.cp-refresh {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.88);
   color: var(--ink-strong);
   font-size: 0.92rem;
+}
+
+.cp-refresh {
+  padding: 12px 14px;
+  cursor: pointer;
 }
 
 .cp-select {

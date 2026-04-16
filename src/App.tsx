@@ -484,7 +484,21 @@ function App() {
           <button
             className="refresh-button"
             onClick={() => {
-              void loadCampaigns()
+              void (async () => {
+                setLoading(true)
+                setError(null)
+                try {
+                  const feed = await fetchCampaigns({ refresh: true })
+                  setCampaigns(feed.campaigns)
+                  setFetchedAt(new Date(feed.generatedAt))
+                } catch (loadError) {
+                  setError(
+                    loadError instanceof Error ? loadError.message : '未知错误，请稍后重试',
+                  )
+                } finally {
+                  setLoading(false)
+                }
+              })()
             }}
             disabled={loading}
             type="button"

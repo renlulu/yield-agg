@@ -7,17 +7,6 @@ import { fetchGateCampaigns } from './exchanges/gate.js'
 import { fetchOkxCampaigns } from './exchanges/okx.js'
 import { unsupportedExchange } from './exchanges/unsupported.js'
 
-const FEED_CACHE_TTL_MS = 3 * 60 * 1000
-
-let cachedFeed:
-  | {
-      generatedAt: string
-      campaigns: ExchangeResult['campaigns']
-      sources: ReturnType<typeof unsupportedExchange>['source'][]
-      expiresAt: number
-    }
-  | null = null
-
 function asErrorResult(
   fallback: ExchangeResult,
   error: unknown,
@@ -35,14 +24,6 @@ function asErrorResult(
 }
 
 export async function buildEarnFeed(config: AppConfig) {
-  if (cachedFeed && cachedFeed.expiresAt > Date.now()) {
-    return {
-      generatedAt: cachedFeed.generatedAt,
-      campaigns: cachedFeed.campaigns,
-      sources: cachedFeed.sources,
-    }
-  }
-
   const tasks: Array<Promise<ExchangeResult>> = [
     fetchBybitCampaigns().catch((error: unknown) =>
       asErrorResult(
@@ -99,16 +80,9 @@ export async function buildEarnFeed(config: AppConfig) {
 
   const results = await Promise.all(tasks)
 
-  const feed = {
+  return {
     generatedAt: new Date().toISOString(),
     campaigns: results.flatMap((result: ExchangeResult) => result.campaigns),
     sources: results.map((result: ExchangeResult) => result.source),
   }
-
-  cachedFeed = {
-    ...feed,
-    expiresAt: Date.now() + FEED_CACHE_TTL_MS,
-  }
-
-  return feed
 }

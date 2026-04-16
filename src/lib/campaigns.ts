@@ -2,8 +2,13 @@ import type { EarnFeed } from '../types'
 
 export const CAMPAIGNS_ENDPOINT = '/api/earn'
 
-export async function fetchCampaigns(): Promise<EarnFeed> {
-  const response = await fetch(CAMPAIGNS_ENDPOINT, {
+export async function fetchCampaigns(options?: { refresh?: boolean }): Promise<EarnFeed> {
+  const endpoint = new URL(CAMPAIGNS_ENDPOINT, window.location.origin)
+  if (options?.refresh) {
+    endpoint.searchParams.set('refresh', '1')
+  }
+
+  const response = await fetch(endpoint, {
     headers: {
       Accept: 'application/json',
     },

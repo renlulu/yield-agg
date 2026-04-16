@@ -14,6 +14,7 @@ dist-ssr
 .env
 .env.*
 server-dist
+runtime
 
 # Editor directories and files
 .vscode/*

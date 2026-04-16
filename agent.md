@@ -10,6 +10,7 @@ Primary product goal:
 - Default to stablecoin-related opportunities to reduce noise
 - Prefer official exchange APIs where possible
 - Use a local server aggregation layer instead of calling third-party aggregators from the frontend
+- Serve the frontend from our own synced local snapshot instead of live-fetching every source on each page request
 
 Non-goal for now:
 
@@ -28,11 +29,13 @@ Backend:
 - `server/`
 - Express + TypeScript
 - Aggregates exchange data into one normalized feed
+- Syncs data on a timer and persists a local JSON snapshot
 
 Main server files:
 
 - `server/index.ts`
 - `server/feed.ts`
+- `server/feed-store.ts`
 - `server/exchanges/*.ts`
 
 ## Data Source Status
@@ -98,6 +101,7 @@ Current Binance adapter behavior:
 - Base `Simple Earn` feed always attempted
 - Announcement campaigns are merged when available
 - If announcement fetch fails or is rate-limited, Binance source stays live with base data only
+- Whole feed is now served from a synced local snapshot
 
 ## UI Direction
 
@@ -124,6 +128,7 @@ What the user wants from UI:
 - Active-only filter is ON by default
 - Scope defaults to `CEX`
 - Long-term products should not show fake progress bars
+- Frontend should read local synced snapshot data by default
 
 ## Known Issues / Risks
 
@@ -131,10 +136,11 @@ What the user wants from UI:
 
 - Current Binance website `bapi` announcement calls can hit `429`
 - A short cache already exists
+- Whole-feed sync now runs in the background and writes to disk
 - Better long-term fix:
-  - move Binance activity sync to scheduled background ingestion
-  - store cached announcement-derived campaigns locally
-  - serve frontend from local persistence instead of live announcement fetch on request
+  - make Binance announcement sync more selective
+  - possibly split Binance announcement sync cadence from the base feed cadence
+  - reduce the number of announcement pages scanned on each refresh
 
 ### 2. Binance activity APR extraction is heuristic
 
@@ -153,9 +159,9 @@ What the user wants from UI:
 ### Highest priority
 
 1. Make Binance activity-layer ingestion durable
-   - scheduled sync
-   - cache to file or SQLite
-   - stop live-fetching announcement pages on every feed build
+   - scheduled sync + file snapshot already implemented
+   - next step is reducing `429` risk further
+   - ideally decouple announcement sync cadence from whole-feed sync cadence
 
 2. Merge Binance base rows and activity rows more intelligently
    - same asset and related promotion should be linked
@@ -202,6 +208,12 @@ Runtime endpoints:
 - frontend: `http://localhost:5173`
 - server: `http://localhost:3001/api/health`
 - aggregated feed: `http://localhost:3001/api/earn`
+
+Current runtime behavior:
+
+- server syncs in background every 5 minutes by default
+- snapshot persists to `runtime/earn-feed.json`
+- manual refresh can trigger a sync on demand
 
 ## Handoff Summary
 

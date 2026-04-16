@@ -6,6 +6,8 @@ export interface PrivateApiCredentials {
 
 export interface AppConfig {
   port: number
+  feedSyncIntervalMs: number
+  snapshotPath: string
   binance: PrivateApiCredentials | null
   bitget: PrivateApiCredentials | null
   okx: PrivateApiCredentials | null
@@ -34,6 +36,8 @@ function readPrivateCredentials(prefix: string, withPassphrase = false) {
 export function loadConfig(): AppConfig {
   return {
     port: Number(process.env.PORT ?? 3001),
+    feedSyncIntervalMs: Number(process.env.FEED_SYNC_INTERVAL_MS ?? 300000),
+    snapshotPath: process.env.FEED_SNAPSHOT_PATH?.trim() || 'runtime/earn-feed.json',
     binance: readPrivateCredentials('BINANCE'),
     bitget: readPrivateCredentials('BITGET', true),
     okx: readPrivateCredentials('OKX', true),

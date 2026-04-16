@@ -7,7 +7,8 @@
 - 前端：`src/`
 - 服务端：`server/`
 - 前端只请求本地接口：`/api/earn`
-- 服务端再去请求各交易所官方接口
+- 服务端后台定时同步各交易所官方接口
+- 用户请求默认只读本地快照，不在每次请求时现抓所有源
 
 ## 当前接入情况
 
@@ -38,6 +39,26 @@ npm run dev
 
 Vite 已经把 `/api` 代理到本地 server。
 
+## 同步方式
+
+服务端现在采用：
+
+- 定时同步
+- 本地 JSON 快照
+- 前端读取快照
+
+默认配置：
+
+- 同步间隔：`5 分钟`
+- 快照路径：`runtime/earn-feed.json`
+
+可以通过环境变量修改：
+
+```bash
+FEED_SYNC_INTERVAL_MS=300000
+FEED_SNAPSHOT_PATH=runtime/earn-feed.json
+```
+
 ## 环境变量
 
 复制一份：
@@ -49,6 +70,9 @@ cp .env.example .env
 按需填写私有接口凭证：
 
 ```bash
+FEED_SYNC_INTERVAL_MS=300000
+FEED_SNAPSHOT_PATH=runtime/earn-feed.json
+
 BINANCE_API_KEY=
 BINANCE_API_SECRET=
 
@@ -84,6 +108,7 @@ npm run start
 
 - `server/index.ts`: Express 入口
 - `server/feed.ts`: 聚合各交易所结果
+- `server/feed-store.ts`: 定时同步和本地快照管理
 - `server/exchanges/*.ts`: 各交易所适配器
 - `src/App.tsx`: 列表页和筛选交互
 - `src/lib/campaigns.ts`: 前端请求本地 `/api/earn`

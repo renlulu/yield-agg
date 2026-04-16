@@ -63,8 +63,19 @@ export interface SourceStatus {
   itemCount: number
 }
 
+export interface FeedSyncStatus {
+  isSyncing: boolean
+  lastAttemptedSyncAt: string | null
+  lastSuccessfulSyncAt: string | null
+  nextScheduledSyncAt: string | null
+  lastError: string | null
+  syncIntervalMs: number
+  snapshotPath: string
+}
+
 export interface EarnFeed {
   generatedAt: string
   campaigns: EarnCampaign[]
   sources: SourceStatus[]
+  sync?: FeedSyncStatus
 }

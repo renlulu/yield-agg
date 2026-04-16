@@ -369,6 +369,25 @@ function CampaignsPage() {
         </div>
 
         <div className="cp-toolbar-group cp-toolbar-controls">
+          <button
+            className="cp-refresh"
+            onClick={() => {
+              setLoading(true)
+              setError(null)
+              fetchCampaigns({ refresh: true })
+                .then((feed) => {
+                  setAll(feed.campaigns.filter(isCampaignType))
+                  setLoading(false)
+                })
+                .catch((loadError) => {
+                  setError(loadError instanceof Error ? loadError.message : '加载失败')
+                  setLoading(false)
+                })
+            }}
+            type="button"
+          >
+            刷新
+          </button>
           <select
             className="cp-select"
             onChange={(event) => startTransition(() => setVenue(event.target.value))}

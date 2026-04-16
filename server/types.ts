@@ -63,3 +63,20 @@ export interface ExchangeResult {
   source: SourceStatus
   campaigns: EarnCampaign[]
 }
+
+export interface SyncStatus {
+  isSyncing: boolean
+  lastAttemptedSyncAt: string | null
+  lastSuccessfulSyncAt: string | null
+  nextScheduledSyncAt: string | null
+  lastError: string | null
+  syncIntervalMs: number
+  snapshotPath: string
+}
+
+export interface EarnFeedSnapshot {
+  generatedAt: string
+  campaigns: EarnCampaign[]
+  sources: SourceStatus[]
+  sync: SyncStatus
+}
