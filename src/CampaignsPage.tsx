@@ -327,9 +327,9 @@ function CampaignsPage() {
     <div className="cp-page">
       <header className="cp-header">
         <div className="cp-header-copy">
-          <h1>发现限时高息机会</h1>
+          <h1>限时高息活动</h1>
           <p className="cp-subtitle">
-            限时活动、新用户 Bonus、空投奖励，按年化排序。
+            单独查看限时活动、新用户奖励、空投和 Bonus，按年化快速比较。
           </p>
         </div>
 

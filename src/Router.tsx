@@ -4,6 +4,8 @@ import CampaignsPage from './CampaignsPage'
 
 export default function Router() {
   const [page, setPage] = useState(location.hash)
+  const isCampaignsPage = page === '#campaigns'
+  const isOnchainPage = page === '#onchain'
 
   useEffect(() => {
     const onHash = () => setPage(location.hash)
@@ -23,20 +25,29 @@ export default function Router() {
         </a>
 
         <nav className="site-nav" aria-label="Primary">
+          <a href="#" className={!page || page === '#' ? 'nav-active' : ''}>
+            产品总览
+          </a>
           <a
             href="#campaigns"
-            className={page === '#campaigns' ? 'nav-active' : ''}
+            className={isCampaignsPage ? 'nav-active' : ''}
           >
-            活动猎手
+            限时活动
           </a>
-          <a href="#" className={!page || page === '#' ? 'nav-active' : ''}>
-            全景扫描
+          <a href="#onchain" className={isOnchainPage ? 'nav-active' : ''}>
+            DeFi
           </a>
         </nav>
 
         <div className="site-header-meta" />
       </header>
-      {page === '#campaigns' ? <CampaignsPage /> : <App />}
+      {isCampaignsPage ? (
+        <CampaignsPage />
+      ) : isOnchainPage ? (
+        <App key="onchain" variant="onchain" />
+      ) : (
+        <App key="overview" variant="overview" />
+      )}
     </>
   )
 }

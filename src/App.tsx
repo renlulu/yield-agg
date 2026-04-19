@@ -11,7 +11,7 @@ import type {
 
 const scopeOptions: Array<{ value: ScopeFilter; label: string }> = [
   { value: 'cex', label: 'CEX' },
-  { value: 'defi', label: '链上' },
+  { value: 'defi', label: 'DeFi' },
   { value: 'all', label: '全部' },
 ]
 
@@ -110,7 +110,14 @@ function matchesScope(campaign: EarnCampaign, scope: ScopeFilter) {
     return true
   }
 
-  return scope === 'cex' ? isEnabled(campaign.is_cex) : !isEnabled(campaign.is_cex)
+  return scope === 'cex' ? isEnabled(campaign.is_cex) : isOnchainProduct(campaign)
+}
+
+function isOnchainProduct(campaign: EarnCampaign) {
+  return (
+    campaign.product_type === 'onchain_earn' ||
+    campaign.product_type === 'defi_staking'
+  )
 }
 
 function parseCampaignDate(value: string | null) {
@@ -401,14 +408,21 @@ function sortCampaigns(campaigns: EarnCampaign[], sortMode: SortMode) {
   return next
 }
 
-function App() {
+type AppVariant = 'overview' | 'onchain'
+
+interface AppProps {
+  variant?: AppVariant
+}
+
+function App({ variant = 'overview' }: AppProps) {
+  const isOnchainView = variant === 'onchain'
   const [campaigns, setCampaigns] = useState<EarnCampaign[]>([])
-  const [scope, setScope] = useState<ScopeFilter>('cex')
+  const [scope, setScope] = useState<ScopeFilter>(isOnchainView ? 'defi' : 'cex')
   const [sortMode, setSortMode] = useState<SortMode>('apy')
   const [venue, setVenue] = useState('all')
   const [search, setSearch] = useState('')
   const [activeOnly, setActiveOnly] = useState(true)
-  const [stableOnly, setStableOnly] = useState(true)
+  const [stableOnly, setStableOnly] = useState(!isOnchainView)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null)
@@ -436,10 +450,11 @@ function App() {
     void loadCampaigns()
   }, [])
 
+  const activeScope: ScopeFilter = isOnchainView ? 'defi' : scope
   const comparableCampaigns = campaigns.filter((campaign) => !isCampaignType(campaign))
 
   const scopedCampaigns = comparableCampaigns.filter((campaign) =>
-    matchesScope(campaign, scope),
+    matchesScope(campaign, activeScope),
   )
   const venueOptions = [...new Set(scopedCampaigns.map((campaign) => campaign.protocol_uid))]
   const safeVenue = venue !== 'all' && !venueOptions.includes(venue) ? 'all' : venue
@@ -475,12 +490,24 @@ function App() {
     const daysRemaining = getDaysRemaining(campaign.end_date)
     return daysRemaining != null && daysRemaining >= 0 && daysRemaining <= 7
   }).length
+  const pageTitle = isOnchainView ? 'DeFi 产品' : '全部 Earn 产品'
+  const heroLede = isOnchainView
+    ? `当前收录 ${scopedCampaigns.length} 个由交易所标记为链上或 DeFi 的产品，覆盖 ${venueOptions.length} 个平台，单独查看收益、期限和规则。`
+    : `当前收录 ${scopedCampaigns.length} 个 earn 产品，覆盖 ${venueOptions.length} 个平台，可按年化、期限和平台横向比较。`
+  const listTitle = isOnchainView ? 'DeFi 产品' : '产品清单'
+  const emptyTitle = isOnchainView ? '没有符合条件的 DeFi 产品' : '没有符合条件的产品'
+  const emptyCopy = isOnchainView
+    ? '试试放宽稳定币筛选，或者搜索协议名、币种和奖励币。'
+    : '试试切换范围、放宽平台筛选，或者搜索更短的关键词。'
+  const searchPlaceholder = isOnchainView
+    ? '搜协议、币种、备注、奖励规则…'
+    : '搜币种、平台、备注、派息规则…'
 
   return (
     <main className="page-shell">
       <header className="masthead">
         <div className="masthead-topline">
-          <h1>全量 Earn 产品一览</h1>
+          <h1>{pageTitle}</h1>
           <button
             className="refresh-button"
             onClick={() => {
@@ -508,9 +535,7 @@ function App() {
         </div>
 
         <div className="hero-copy">
-          <p className="hero-lede">
-            横跨 {venueOptions.length} 个平台的 {scopedCampaigns.length} 个 earn 产品，按年化、到期、平台排序，一屏看完。
-          </p>
+          <p className="hero-lede">{heroLede}</p>
         </div>
 
         <div className="summary-strip">
@@ -543,22 +568,24 @@ function App() {
 
       <section className="toolbar">
         <div className="toolbar-row">
-          <div className="segmented-control" aria-label="范围筛选">
-            {scopeOptions.map((option) => (
-              <button
-                key={option.value}
-                className={option.value === scope ? 'is-active' : undefined}
-                onClick={() => {
-                  startTransition(() => {
-                    setScope(option.value)
-                  })
-                }}
-                type="button"
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          {!isOnchainView ? (
+            <div className="segmented-control" aria-label="范围筛选">
+              {scopeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  className={option.value === activeScope ? 'is-active' : undefined}
+                  onClick={() => {
+                    startTransition(() => {
+                      setScope(option.value)
+                    })
+                  }}
+                  type="button"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <label className="toggle-line">
             <input
@@ -637,7 +664,7 @@ function App() {
                   setSearch(event.target.value)
                 })
               }}
-              placeholder="搜币种、平台、备注、派息规则…"
+              placeholder={searchPlaceholder}
               type="search"
               value={search}
             />
@@ -648,7 +675,7 @@ function App() {
       <section className="list-shell">
         <div className="list-header">
           <div>
-            <p className="list-title">机会清单</p>
+            <p className="list-title">{listTitle}</p>
             <p className="list-subtitle">
               显示 {visibleCampaigns.length} 条，
               {stableOnly ? '默认稳定币相关' : '包含全部资产'}，
@@ -663,7 +690,7 @@ function App() {
         </div>
 
         <div className="table-head" aria-hidden="true">
-          <span>活动</span>
+          <span>产品</span>
           <span>实时年化</span>
           <span>标签与规则</span>
           <span>操作</span>
@@ -706,8 +733,8 @@ function App() {
 
         {!loading && !error && !visibleCampaigns.length ? (
           <div className="empty-state">
-            <p className="empty-title">没有符合条件的活动</p>
-            <p className="empty-copy">试试切换范围、放宽平台筛选，或者搜索更短的关键词。</p>
+            <p className="empty-title">{emptyTitle}</p>
+            <p className="empty-copy">{emptyCopy}</p>
           </div>
         ) : null}
 
