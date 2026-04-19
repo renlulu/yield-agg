@@ -1,4 +1,4 @@
-# Yield Desk
+# Prism
 
 一个 `Vite + React + TypeScript + Express` 项目，用本地 server 聚合各交易所官方 `earn` API，再把结果统一展示到一个列表页。
 

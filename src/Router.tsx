@@ -17,9 +17,9 @@ export default function Router() {
     <>
       <header className="site-header">
         <a className="site-brand" href="#">
-          <span className="site-brand-mark">YD</span>
+          <span className="site-brand-mark">P</span>
           <span className="site-brand-copy">
-            <strong>Yield Desk</strong>
+            <strong>Prism</strong>
             <em>Stablecoin Income Intelligence</em>
           </span>
         </a>
